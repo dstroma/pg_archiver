@@ -1,7 +1,9 @@
-use v5.36;
+use v5.26;
+use warnings;
+use experimental 'signatures';
 package Pg::Archiver::ArchivePartial {
-  use DBI;
   use CloudStore;
+  use DBI;
   use experimental 'try';
   use Fcntl qw(:flock);
 
@@ -15,12 +17,14 @@ package Pg::Archiver::ArchivePartial {
   my %config;
 
   sub main ($class, %params) {
-    %config      = $params{'config'}->%*;
-    my %ARGS     = $params{'ARGS'}->%*;
-    my $filename = $ARGS{'wal-file'};
-
+    %config        = $params{'config'}->%*;
+    my %ARGS       = $params{'ARGS'}->%*;
+    my $filename   = $ARGS{'wal-file'};
+    my $daemonize  = exists $ARGS{'daemonize'};
     my $continuous = exists $ARGS{'continuous'};
     my $no_cleanup = exists $ARGS{'no-cleanup'};
+
+    daemonie() if $daemonize;
 
     $SIG{TERM} = sub { $stop = 1 };
 
@@ -158,6 +162,13 @@ package Pg::Archiver::ArchivePartial {
     $last_cleanup_time = time();
   }
 
+  sub daemonize () {
+    eval { require Proc::Daemon; 1 }
+      or die "Cannot daemoinze: $@";
+
+    my $d = Proc::Daemon->new(); # /home/postgres/pg_archiver
+    $d->Init();
+  }
 }
 
 1;

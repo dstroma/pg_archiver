@@ -1,6 +1,9 @@
-use v5.40;
+use v5.26;
+use warnings;
+use experimental 'signatures';
 package Pg::Archiver 0.01 {
 
+  # Process command line arguments
   my $cmd = shift @ARGV;
 
   # Show help? ################################################################
@@ -8,22 +11,27 @@ package Pg::Archiver 0.01 {
     if (!$cmd or $cmd !~ m/^base_backup|archive_wal|archive_partial|recover$/) {
       say <<~IHEREDOC;
         Usage:
-        pg_archiver.pl [base_backup|archive_wal|archive_partial|recover] [options]
+        pg_archiver.pl base_backup|archive_wal|archive_partial|recover [options]
 
-        Options:
-        --config [filename]   Filename of configuration file
+        Note:
+        Options must come AFTER the command name. Separate option names and values
+        with whitespace. Flag-type options should not be passed a value.
 
-        --continuous          Continuously monitor for new WAL segments
-                                (applies to archive_partial only)
+        General options:
+          --config [filename]    Filename of configuration file (REQUIRED)
 
-        --no-cleanup          Do not automatically clean up
-                                (applies to archive_partial only)
+        Options for "archive_partial":
+          --continuous           Continuously monitor for new WAL segments
 
-        --wal-file [filename] Filename of WAL file to archive
-                                (applies to archive_wal only)
+          --daemonize            Daemonize (NOT IMPLEMENTED)
 
-        --start-server        Start the recovery server
-                                (applies to recover command only)
+          --no-cleanup           Do not automatically clean up
+
+        Options for "archive_wal":
+          --wal-file [filename]  Name of WAL file to archive (excluding directory)
+
+        Options for "recover":
+          --start-server         Start the recovery server (NOT IMPLEMENTED)
 
         IHEREDOC
 
@@ -79,3 +87,5 @@ package Pg::Archiver 0.01 {
   exit $return;
 
 }
+
+1;
