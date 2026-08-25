@@ -1,0 +1,29 @@
+#############################################################################
+# Config
+
+%config = (
+  storage_class        => 'CloudStore',
+  storage_options      => {
+                            driver       => 'Dropbox',
+                            key_hex      => '',
+                          },
+  storage_conninfo     => {
+                            key          => '',
+                            secret       => '',
+                            access_token => '',
+                          },
+  storage_path         => '/pgsql_wal_archive_mbp',
+  walfile_path         => '/Users/dstroma/dev/pg-data/pg_xlog',
+  pgdata_dir           => '/Users/dstroma/dev/pg-data',
+  pgbin_dir            => '/usr/local/bin',
+  recovery_dir         => '/Users/dstroma/dev/pg-data-recovery',
+  temp_save_path       => '/Users/dstroma/dev/git/wal_to_cloud/temp',
+  metadata_file        => '/Users/dstroma/dev/git/wal_to_cloud/archiver.dat',
+  db_test_db_name      => 'postgres',
+  db_username          => 'perl',
+  db_password          => ''
+);
+
+# End Config
+#############################################################################
+

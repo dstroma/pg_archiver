@@ -53,4 +53,4 @@ package Pg::Archiver::ArchiveWal {
   }
 }
 
-1;
+1

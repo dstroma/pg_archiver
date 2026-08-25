@@ -1,9 +1,9 @@
 use v5.36;
-package Pg::Archiver::ArchiveWal {
+package Pg::Archiver::ArchivePartial {
   use DBI;
   use CloudStore;
   use experimental 'try';
-  use Fcntl qw(:flock SEEK_END);
+  use Fcntl qw(:flock);
 
   my $stop              = 0;
   my $last_cleanup_time = 0;
@@ -12,16 +12,17 @@ package Pg::Archiver::ArchiveWal {
   my $check_connections = 0;
   my $check_connection_interval  = 60*5;
   my $last_connection_check_time = 0;
+  my %config;
 
   sub main ($class, %params) {
-    my %config   = $params{'config'}->%*;
+    %config      = $params{'config'}->%*;
     my %ARGS     = $params{'ARGS'}->%*;
     my $filename = $ARGS{'wal-file'};
 
     my $continuous = exists $ARGS{'continuous'};
     my $no_cleanup = exists $ARGS{'no-cleanup'};
 
-    $SIG{TERM} = sub { $stop = 1 }
+    $SIG{TERM} = sub { $stop = 1 };
 
     # Connect to database
     my $dbh;
@@ -29,7 +30,6 @@ package Pg::Archiver::ArchiveWal {
 
     while (!$stop) {
       affirm_connections(\$dbh, \$storage);
-        if $check_connections;
       tick($dbh, $storage);
       cleanup($dbh, $storage)
         if !$no_cleanup and $last_cleanup_time < time() - $cleanup_interval;
@@ -44,25 +44,22 @@ package Pg::Archiver::ArchiveWal {
     $dbh->disconnect();
   }
 
-  sub check_connections ($ref_dbh, $ref_storage) {
-
-    unless ($ref_dbh and $ref_dbh->$*->do("SELECT 1")) {
-      $dbh = DBI->connect("dbi:Pg:database=postgres", $config{'db_username'}, $config{'db_password'})
+  sub affirm_connections ($ref_dbh, $ref_storage) {
+    my $local_dbh;
+    unless ($ref_dbh and $$ref_dbh and $ref_dbh->$*->do("SELECT 1")) {
+      $local_dbh = DBI->connect("dbi:Pg:database=postgres", $config{'db_username'}, $config{'db_password'})
         or die DBI::errstr();
+      $$ref_dbh = $local_dbh;
     }
-
-    $dbhref = \$dbh;
 
     # Connect to cloudfiles
     eval "use $config{storage_class}; 1" or die "Cannot load package $config{storage_class}: $@";
     my $storage = $config{storage_class}->new(%{$config{storage_options} || {}});
     $storage->connect(%{$config{storage_conninfo} || {}});
-    my ($one) = $dbh->selectrow_array
+    $$ref_storage = $storage;
   }
 
-  sub tick {
-    my $dbh = shift;
-    my $storage = shift;
+  sub tick ($dbh, $storage) {
     my ($sqlcol) = $dbh->selectrow_array('SELECT pg_walfile_name_offset(pg_current_wal_lsn())');
     $sqlcol =~ m/\((\w+),(\w+)\)/ or die 'Cannot figure out filename and offset';
     my ($wal_filename, $offset_new) = ($1, $2);
