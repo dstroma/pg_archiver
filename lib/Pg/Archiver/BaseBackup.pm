@@ -87,3 +87,5 @@ package Pg::Archiver::BaseBackup {
     return 0;
   }
 }
+
+1;

@@ -3,6 +3,7 @@ package Pg::Archiver::ArchiveWal {
   use DBI;
   use CloudStore;
   use experimental 'try';
+  use Fcntl qw(:flock SEEK_END);
 
   my $stop              = 0;
   my $last_cleanup_time = 0;
@@ -161,3 +162,5 @@ package Pg::Archiver::ArchiveWal {
   }
 
 }
+
+1;
